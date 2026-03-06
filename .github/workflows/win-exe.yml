@@ -1,8 +1,19 @@
 name: Build Windows Installer
 
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      is-release:
+        description: "Workflow is called by a release"
+        type: boolean
+        default: false
+    outputs:
+      sha256-msi:
+        description: "SHA256 sum of the x64 msi"
+        value: ${{ jobs.build-msi.outputs.sha256sum}}
+      sha256-exe:
+        description: "SHA256 sum of the x64 exe"
+        value: ${{ jobs.build-exe.outputs.sha256sum}}
   workflow_dispatch:
     inputs:
       version:
@@ -43,6 +54,8 @@ jobs:
     name: Build .msi Installer
     runs-on: ${{ matrix.os }}
     needs: [ get-version ]
+    outputs:
+      sha256sum: ${{ steps.sha256sum.outputs.value }}
     strategy:
       matrix:
         include:
@@ -270,6 +283,10 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+      - id: sha256sum
+        run: |
+          read -ra CMD_OUTPUT < <(sha256sum installer/Cryptomator-*.msi)
+          echo "value=${CMD_OUTPUT[0]}" >> $GITHUB_OUTPUT
       - name: Add possible alpha/beta tags and architecture to installer name
         run: mv installer/Cryptomator-*.msi Cryptomator-${{ needs.get-version.outputs.semVerStr }}-${{ matrix.arch }}.msi
       - name: Create detached GPG signature with key 615D449FE6E6A235
@@ -292,6 +309,8 @@ jobs:
     name: Build .exe installer
     runs-on: ${{ matrix.os }}
     needs: [ get-version, build-msi ]
+    outputs:
+      sha256sum: ${{ steps.sha256sum.outputs.value }}
     strategy:
       matrix:
         include:
@@ -413,6 +432,10 @@ jobs:
           sign-url: 'https://cryptomator.org'
           username: ${{ secrets.WIN_CODESIGN_USERNAME }}
           password: ${{ secrets.WIN_CODESIGN_PW }}
+      - id: sha256sum
+        run: |
+          read -ra CMD_OUTPUT < <(sha256sum installer/Cryptomator-*.exe)
+          echo "value=${CMD_OUTPUT[0]}" >> $GITHUB_OUTPUT
       - name: Add possible alpha/beta tags to installer name
         run: mv installer/Cryptomator-Installer.exe Cryptomator-${{ needs.get-version.outputs.semVerStr }}-${{ matrix.executable-suffix }}.exe
       - name: Create detached GPG signature with key 615D449FE6E6A235
@@ -433,7 +456,7 @@ jobs:
 
   publish:
     name: Publish installers to the github release
-    if: startsWith(github.ref, 'refs/tags/') && github.event.action == 'published'
+    if: github.ref_type == 'tag' && inputs.is-release
     runs-on: ubuntu-latest
     needs: [ build-msi, build-exe ]
     outputs:
@@ -448,6 +471,7 @@ jobs:
         id: publish
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
+          draft: true
           fail_on_unmatched_files: true
           token: ${{ secrets.CRYPTOBOT_RELEASE_TOKEN }}
           # do not change ordering of filelist, required for correct job output

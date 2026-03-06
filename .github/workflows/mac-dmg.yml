@@ -1,8 +1,16 @@
 name: Build macOS .dmg for arm64
 
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      is-release:
+        description: "Workflow is called by a release"
+        type: boolean
+        default: false
+    outputs:
+      sha256-dmg:
+        description: "SHA256 sum of the arm64 dmg"
+        value: ${{ jobs.build.outputs.sha256sum}}
   workflow_dispatch:
     inputs:
       version:
@@ -34,6 +42,8 @@ jobs:
     name: Build Cryptomator.app for ${{ matrix.output-suffix }}
     runs-on: ${{ matrix.os }}
     needs: [get-version]
+    outputs:
+      sha256sum: ${{ steps.sha256sum.outputs.value }}
     strategy:
       fail-fast: false
       matrix:
@@ -255,6 +265,10 @@ jobs:
           password: ${{ secrets.MACOS_NOTARIZATION_PW }}
           team-id: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
           xcode-path: '/Applications/Xcode_16.app'
+      - id: sha256sum
+        run: |
+          read -ra CMD_OUTPUT < <(sha -a256 Cryptomator-*.dmg)
+          echo "value=${CMD_OUTPUT[0]}" >> $GITHUB_OUTPUT
       - name: Add possible alpha/beta tags to installer name
         run: mv Cryptomator-*.dmg Cryptomator-${{ needs.get-version.outputs.semVerStr }}-${{ matrix.output-suffix }}.dmg
       - name: Create detached GPG signature with key 615D449FE6E6A235
@@ -277,9 +291,10 @@ jobs:
             Cryptomator-*.asc
           if-no-files-found: error
       - name: Publish dmg on GitHub Releases
-        if: startsWith(github.ref, 'refs/tags/') && github.event.action == 'published'
+        if: github.ref_type == 'tag' && inputs.is-release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
+          draft: true
           fail_on_unmatched_files: true
           token: ${{ secrets.CRYPTOBOT_RELEASE_TOKEN }}
           files: |

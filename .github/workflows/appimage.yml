@@ -1,8 +1,19 @@
 name: Build AppImage
 
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      is-release:
+        description: "Workflow is called by a release"
+        type: boolean
+        default: false
+    outputs:
+      sha256-appimage-x64:
+        description: "SHA256 sum of the x64 appimage"
+        value: ${{ jobs.build.outputs.x64-sha256sum}}
+      sha256-appimage-aarch64:
+        description: "SHA256 sum of the aarch64 appimage"
+        value: ${{ jobs.build.outputs.x64-sha256sum}}
   workflow_dispatch:
     inputs:
       version:
@@ -35,6 +46,9 @@ jobs:
     name: Build AppImage
     runs-on: ${{ matrix.os }}
     needs: [get-version]
+    outputs:
+      x64-sha256sum: ${{ steps.sha256sum.outputs.value-x86_64 }}
+      aarch64-sha256sum: ${{ steps.sha256sum.outputs.value-aarch64 }}
     env:
       SEMVER_STR: ${{ needs.get-version.outputs.semVerStr }}
       SEMVER_NUM: ${{ needs.get-version.outputs.semVerNum }}
@@ -180,6 +194,10 @@ jobs:
           ./squashfs-root/AppRun Cryptomator.AppDir cryptomator-${SEMVER_STR}-${{ matrix.arch }}.AppImage
           -u "gh-releases-zsync|cryptomator|cryptomator|latest|cryptomator-*-${{ matrix.arch }}.AppImage.zsync"
           --sign --sign-key=615D449FE6E6A235
+      - id: sha256sum
+        run: |
+          read -ra CMD_OUTPUT < <(sha256sum cryptomator-*.AppImage)
+          echo "value-${{matrix.arch}}=${CMD_OUTPUT[0]}" >> $GITHUB_OUTPUT
       - name: Create detached GPG signatures
         run: |
           gpg --batch --quiet --passphrase-fd 0 --pinentry-mode loopback -u 615D449FE6E6A235 --detach-sign -a cryptomator-*.AppImage
@@ -194,9 +212,10 @@ jobs:
             cryptomator-*.asc
           if-no-files-found: error
       - name: Publish AppImage on GitHub Releases
-        if: startsWith(github.ref, 'refs/tags/') && github.event.action == 'published'
+        if: github.ref_type == 'tag' && inputs.is-release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
+          draft: true
           fail_on_unmatched_files: true
           token: ${{ secrets.CRYPTOBOT_RELEASE_TOKEN }}
           files: |
