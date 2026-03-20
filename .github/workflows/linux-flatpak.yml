@@ -41,16 +41,15 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: cryptomator
+          repository: flathub/org.cryptomator.Cryptomator
+          submodules: true
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          repository: flathub/org.cryptomator.Cryptomator
-          path: flatpak-build
-          submodules: true
+          path: cryptomator
       - name: Prepare build files
         run: |
-          cp -r -f cryptomator/dist/linux/flatpak/* flatpak-build
-          envsubst '$FLATPAK_VERSION $FLATPAK_REVISION $CRYPTOMATOR_SOURCE' < flatpak-build/org.cryptomator.Cryptomator.TEMPLATE.yaml > flatpak-build/org.cryptomator.Cryptomator.yaml
+          cp -r -f cryptomator/dist/linux/flatpak/* .
+          envsubst '$FLATPAK_VERSION $FLATPAK_REVISION $CRYPTOMATOR_SOURCE' < org.cryptomator.Cryptomator.TEMPLATE.yaml > org.cryptomator.Cryptomator.yaml
         env:
           FLATPAK_VERSION: ${{ needs.get-version.outputs.semVerNum }}
           FLATPAK_REVISION: 1
@@ -63,11 +62,11 @@ jobs:
           archive: false
           if-no-files-found: error
           path: |
-            flatpak-build/org.cryptomator.Cryptomator.yaml
+            org.cryptomator.Cryptomator.yaml
       - uses: flatpak/flatpak-github-actions/flatpak-builder@92ae9851ad316786193b1fd3f40c4b51eb5cb101 # v6.6
         with:
           bundle: cryptomator.flatpak
-          manifest-path: flatpak-build/org.cryptomator.Cryptomator.yaml
+          manifest-path: org.cryptomator.Cryptomator.yaml
           cache-key: flatpak-builder-${{ github.sha }}
           #build-dir: flatpak_app
           #gpg-sign:
