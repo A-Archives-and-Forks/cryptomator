@@ -44,7 +44,6 @@ jobs:
           path: cryptomator
       - name: Prepare build files
         run: |
-          mkdir flatpak-build
           cp -r -f cryptomator/dist/linux/flatpak flatpak-build
           envsubst '$FLATPAK_VERSION $FLATPAK_REVISION $CRYPTOMATOR_SOURCE' < flatpak-build/org.cryptomator.Cryptomator.TEMPLATE.yaml > flatpak-build/org.cryptomator.Cryptomator.yaml
           yq '(.modules[] | select(.name == "cryptomator") | .build-options.build-args) = ["--share=network"]' -i flatpak-build/org.cryptomator.Cryptomator.yaml
