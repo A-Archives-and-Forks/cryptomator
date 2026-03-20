@@ -76,6 +76,8 @@ modules:
   - name: cryptomator
     buildsystem: simple
     build-options:
+      build-args:
+        - --share=network
       env:
         PATH: /app/bin:/usr/bin
         MAVEN_OPTS: -Dmaven.repo.local=.m2/repository
@@ -144,9 +146,6 @@ modules:
       - install -D -m0644 -t /app/share/metainfo/ dist/linux/common/org.cryptomator.Cryptomator.metainfo.xml
     sources:
       - $CRYPTOMATOR_SOURCE
-      - maven-dependencies.yaml
-      - maven-dependencies-x86_64.yaml
-      - maven-dependencies-aarch64.yaml
       - type: file
         dest-filename: jdk.tar.gz
         only-arches:
