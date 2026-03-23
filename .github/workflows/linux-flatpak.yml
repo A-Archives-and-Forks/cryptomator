@@ -33,8 +33,8 @@ jobs:
       fail-fast: false
       matrix:
         variant:
-          - arch: x86_64
-            runner: ubuntu-24.04
+          #- arch: x86_64
+          #  runner: ubuntu-24.04
           - arch: aarch64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.variant.runner }}
@@ -73,26 +73,55 @@ jobs:
           arch: ${{ matrix.variant.arch }}
           keep-build-dirs: true
       - name: Update maven dependencies
-        run: >
-          ( cd .flatpak-builder/build/cryptomator-1/.m2/repository/
-          && find * -type f \( -iname '*.jar' -o -iname '*.pom' \)
-          | grep -v 'javafx-*-linux-*.jar'
-          | natsort -p
-          | xargs -rI '{}' bash -c 'echo -e "$SOURCE_ENTRY_TEMPLATE"'
+        run: |
+          (
+            cd .flatpak-builder/build/cryptomator-1/.m2/repository/
+            find * -type f \( -iname '*.jar' -o -iname '*.pom' \) \
+              | grep -v "$JAVAFX_PATTERN" \
+              | sort -V \
+              > /tmp/maven-dependency-files.txt
+
+            while IFS= read -r dependency; do
+              cat <<EOF
+          - type: file
+            dest: .m2/repository/$(dirname "$dependency")
+            url: https://repo.maven.apache.org/maven2/$dependency
+            sha256: $(sha256sum "$dependency" | cut -c 1-64)
+          EOF
+            done < /tmp/maven-dependency-files.txt
           ) > maven-dependencies.yaml
         env:
-          SOURCE_ENTRY_TEMPLATE: |-
-            - type: file
-              dest: .m2/repository/$(dirname {})
-              url: https://repo.maven.apache.org/maven2/{}
-              sha256: $(sha256sum {} | cut -c 1-64)
+          JAVAFX_PATTERN: ${{ matrix.variant.arch == 'aarch64' && 'javafx-*-linux-aarch64.jar' || 'javafx-*-linux.jar' }}
+      - name: Update arch specific maven dependencies
+        run: |
+          (
+            cd .flatpak-builder/build/cryptomator-1/.m2/repository/
+            find * -type f \( -iname "$JAVAFX_PATTERN" \) \
+              | sort -V \
+              > /tmp/maven-dependency-files-${{ matrix.variant.arch }}.txt
+
+            while IFS= read -r dependencyPath; do
+              dependencyName=$(dirname "$dependencyPath");
+              dependencySha=$(sha256sum "$dependencyPath" | cut -c 1-64);
+              cat <<EOF
+          - type: file
+            dest: .m2/repository/${dependencyName}
+            url: https://repo.maven.apache.org/maven2/${dependencyPath}
+            sha256: ${dependencySha}
+            only-arches: [${{ matrix.variant.arch }}]
+          EOF
+            done < /tmp/maven-dependency-files-${{ matrix.variant.arch }}.txt
+          ) > maven-dependencies-${{ matrix.variant.arch }}.yaml
+        env:
+          JAVAFX_PATTERN: ${{ matrix.variant.arch == 'aarch64' && 'javafx-*-linux-aarch64.jar' || 'javafx-*-linux.jar' }}
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: matrix.variant.arch == 'aarch64'
         with:
-          archive: false
+          name: maven-sources-${{ matrix.variant.arch }}
           if-no-files-found: error
           path: |
             maven-dependencies.yaml
+            maven-dependencies-${{ matrix.variant.arch }}.yaml
 
   tarball:
     name: Determines tarball url and compute checksum
