@@ -177,6 +177,21 @@ jobs:
         with:
           name: maven-sources-x86_64
           path: mvn-src-x64
+      - name: Determine revision
+        id: revision
+        run: |
+          CURRENT_VERSION="$(yq '(.modules[] | select(.name == "cryptomator") | .build-options.env.VERSION)' org.cryptomator.Cryptomator.yaml)"
+          CURRENT_REVISION="$(yq '(.modules[] | select(.name == "cryptomator") | .build-options.env.REVISION_NO)' org.cryptomator.Cryptomator.yaml)"
+
+          if [[ "$CURRENT_VERSION" == "$TARGET_VERSION" && "$CURRENT_REVISION" =~ ^[0-9]+$ ]]; then
+            NEXT_REVISION=$((CURRENT_REL + 1))
+          else
+            NEXT_REL=1
+          fi
+
+          echo "value=${NEXT_REL}" >> "$GITHUB_OUTPUT"
+        env:
+          TARGET_VERSION: ${{ needs.get-version.outputs.semVerStr }}
       - name: Update build files
         run: |
           cp -r -f cryptomator/dist/linux/flatpak/* .
@@ -187,7 +202,7 @@ jobs:
           yq -i '(.modules[] | select(.name == "cryptomator") | .sources) += ["maven-dependencies.yaml", "javafx-maven-dependencies-x86_64.yaml", "javafx-maven-dependencies-aarch64.yaml"]' org.cryptomator.Cryptomator.yaml
         env:
           FLATPAK_VERSION: ${{ needs.get-version.outputs.semVerNum }}
-          FLATPAK_REVISION: 1
+          FLATPAK_REVISION: ${{ steps.revision.outputs.value}}
           CRYPTOMATOR_SOURCE: |-
             type: archive
                     sha512: ${{steps.sha512.outputs.value}}
