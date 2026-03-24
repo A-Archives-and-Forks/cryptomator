@@ -23,7 +23,7 @@ jobs:
     with:
       version: ${{ inputs.tag }}
 
-  flatpak:
+  build-flatpak:
     name: "Build flatpak"
     needs: [get-version]
     container:
