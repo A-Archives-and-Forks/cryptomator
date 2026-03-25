@@ -13,7 +13,7 @@ on:
         value: ${{ jobs.build.outputs.x64-sha256sum}}
       sha256-appimage-aarch64:
         description: "SHA256 sum of the aarch64 appimage"
-        value: ${{ jobs.build.outputs.x64-sha256sum}}
+        value: ${{ jobs.build.outputs.aarch64-sha256sum}}
   workflow_dispatch:
     inputs:
       version:
