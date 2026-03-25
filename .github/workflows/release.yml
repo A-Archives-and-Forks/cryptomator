@@ -1,0 +1,158 @@
+name: Create a Cryptomator Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+        - '*'
+
+env:
+  JAVA_DIST: 'temurin'
+  JAVA_VERSION: 25
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+    with:
+      version:  ''
+
+  create-release:
+    name: Compile and Test
+    runs-on: ubuntu-latest
+    needs: get-version
+    if: github.ref_type == 'tag' && needs.get-version.outputs.versionType != 'unknown'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: ${{ env.JAVA_DIST }}
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'maven'
+      - name: Build and Test
+        run: xvfb-run mvn -B verify -Plinux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
+      - name: Draft a release
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          draft: true
+          discussion_category_name: releases
+          token: ${{ secrets.CRYPTOBOT_RELEASE_TOKEN }}
+          generate_release_notes: true
+          body: |-
+            > [!WARN]
+            > 🚧 DO NOT EDIT 🚧
+            >
+            > The [builds are still running](https://github.com/cryptomator/cryptomator/actions/workflows/release.yml).
+            
+            <!--REPLACE with auto-generated release notes (see below)
+            ### What's New 🎉
+            ### Bugfixes 🐛
+            ### Other Changes 📎
+            END REPLACE-->
+            
+            For a comprehensive view of changes, read the [CHANGELOG](https://github.com/cryptomator/cryptomator/blob/develop/CHANGELOG.md).
+            
+            ---
+            
+            💾 SHA-256 checksums of release artifacts:
+            ```
+            ```
+            
+            > [!TIP]
+            > You can verify the GPG signature of all assets using our public key: [`5811 7AFA 1F85 B3EE C154  677D 615D 449F E6E6 A235`](https://gist.github.com/cryptobot/211111cf092037490275f39d408f461a).
+            
+            
+            <!-- Auto-Generated Release Notes: -->
+      - name: Download source tarball
+        run: |
+          curl --silent --fail-with-body --proto "=https" -L -H "Accept: application/vnd.github+json" https://github.com/cryptomator/cryptomator/archive/${{ github.ref }}.tar.gz --output cryptomator-${{ github.ref_name }}.tar.gz
+      - name: Sign source tarball with key 615D449FE6E6A235
+        run: |
+          echo "${GPG_PRIVATE_KEY}" | gpg --batch --quiet --import
+          echo "${GPG_PASSPHRASE}" | gpg --batch --quiet --passphrase-fd 0 --pinentry-mode loopback -u 615D449FE6E6A235 --detach-sign -a cryptomator-*.tar.gz
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.RELEASES_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.RELEASES_GPG_PASSPHRASE }}
+      - name: Publish asc on GitHub Releases
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          draft: true
+          fail_on_unmatched_files: true
+          token: ${{ secrets.CRYPTOBOT_RELEASE_TOKEN }}
+          files: |
+            cryptomator-*.tar.gz.asc
+
+  build-exe-and-msi:
+    needs: create-release
+    uses: ./.github/workflows/win-exe.yml
+    with:
+      is-release: true
+    secrets: inherit
+
+  build-dmg-arm64:
+    needs: create-release
+    uses: ./.github/workflows/mac-dmg.yml
+    with:
+      is-release: true
+    secrets: inherit
+
+  build-dmg-x64:
+    needs: create-release
+    uses: ./.github/workflows/mac-dmg-x64.yml
+    with:
+      is-release: true
+    secrets: inherit
+
+  build-appimages:
+    needs: create-release
+    uses: ./.github/workflows/appimage.yml
+    with:
+      is-release: true
+    secrets: inherit
+
+  update-sha256sums:
+    runs-on: ubuntu-latest
+    needs: [get-version, build-exe-and-msi, build-dmg-arm64, build-dmg-x64, build-appimages]
+    env:
+      TAG: ${{ github.ref_name }}
+      SEMVER: ${{ needs.get-version.outputs.semVerStr }}
+      GH_TOKEN: ${{ secrets.CRYPTOBOT_RELEASE_TOKEN }}
+    steps:
+      - name: Compute source tarball SHA256
+        id: src-sha256
+        run: |
+          curl --silent --fail-with-body --proto "=https" -L \
+            -H "Accept: application/vnd.github+json" \
+            "https://github.com/cryptomator/cryptomator/archive/refs/tags/${TAG}.tar.gz" \
+            --output "cryptomator-${SEMVER}.tar.gz"
+          read -ra CMD_OUTPUT < <(sha256sum "cryptomator-${SEMVER}.tar.gz")
+          echo "value=${CMD_OUTPUT[0]}" >> $GITHUB_OUTPUT
+      - name: Update release body with checksums
+        run: |
+          CHECKSUMS="${SRC_SHA}  cryptomator-${SEMVER}.tar.gz
+          ${MSI_SHA}  Cryptomator-${SEMVER}-x64.msi
+          ${EXE_SHA}  Cryptomator-${SEMVER}-x64.exe
+          ${DMG_ARM64_SHA}  Cryptomator-${SEMVER}-arm64.dmg
+          ${DMG_X64_SHA}  Cryptomator-${SEMVER}-x64.dmg
+          ${APPIMAGE_X64_SHA}  cryptomator-${SEMVER}-x86_64.AppImage
+          ${APPIMAGE_AARCH64_SHA}  cryptomator-${SEMVER}-aarch64.AppImage"
+
+          CURRENT_BODY=$(gh release view "${TAG}" --json body --jq .body)
+          UPDATED_BODY=$(echo "$CURRENT_BODY" | awk -v sums="$CHECKSUMS" '
+            /^```$/ && !done { print; print sums; done=1; next }
+            1
+          ')
+          gh release edit "${TAG}" --draft --notes "$UPDATED_BODY"
+        env:
+          SRC_SHA: ${{ steps.src-sha256.outputs.value }}
+          MSI_SHA: ${{ needs.build-exe-and-msi.outputs.sha256-msi }}
+          EXE_SHA: ${{ needs.build-exe-and-msi.outputs.sha256-exe }}
+          DMG_ARM64_SHA: ${{ needs.build-dmg-arm64.outputs.sha256-dmg }}
+          DMG_X64_SHA: ${{ needs.build-dmg-x64.outputs.sha256-dmg }}
+          APPIMAGE_X64_SHA: ${{ needs.build-appimages.outputs.sha256-appimage-x64 }}
+          APPIMAGE_AARCH64_SHA: ${{ needs.build-appimages.outputs.sha256-appimage-aarch64 }}
