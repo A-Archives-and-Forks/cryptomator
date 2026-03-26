@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: cryptomator
-          ref: ${{ inputs.tag || github.ref_name }}
+          ref: ${{ inputs.tag || github.sha }}
       - name: Resolve checked-out source SHA
         id: cryptomator-source
         working-directory: cryptomator
@@ -173,7 +173,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: cryptomator
-          ref: ${{ inputs.tag || github.ref_name }}
+          ref: ${{ inputs.tag || github.sha }}
       - name: Download source tarball and compute checksum
         id: sha512
         run: |
