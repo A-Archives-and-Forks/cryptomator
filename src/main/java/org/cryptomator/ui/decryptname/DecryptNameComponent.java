@@ -33,10 +33,6 @@ public interface DecryptNameComponent {
 	@DecryptNameWindow
 	Vault vault();
 
-	default void showDecryptFileNameWindow() {
-		showDecryptFileNameWindow(List.of());
-	}
-
 	default void showDecryptFileNameWindow(List<Path> pathsToDecrypt) {
 		Stage s = window();
 		s.setScene(decryptNamesView().get());
@@ -47,12 +43,13 @@ public interface DecryptNameComponent {
 			s.requestFocus();
 		} else {
 			LOG.error("Aborted showing DecryptFileName window: vault state is not {}, but {}.", VaultState.Value.UNLOCKED, vault().getState());
+			s.close();
 		}
 	}
 
 	@Subcomponent.Factory
 	interface Factory {
 
-		DecryptNameComponent create(@BindsInstance @DecryptNameWindow Vault vault, @BindsInstance @Named("windowOwner") Stage owner, @BindsInstance @DecryptNameWindow List<Path> pathsToDecrypt);
+		DecryptNameComponent create(@BindsInstance @DecryptNameWindow Vault vault, @BindsInstance @Named("windowOwner") Stage owner);
 	}
 }

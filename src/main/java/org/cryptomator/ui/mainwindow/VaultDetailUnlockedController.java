@@ -223,7 +223,7 @@ public class VaultDetailUnlockedController implements FxController {
 	}
 
 	private DecryptNameComponent buildDecryptNameWindow(Vault vault) {
-		return decryptNameWindowFactory.create(vault, mainWindow, List.of());
+		return decryptNameWindowFactory.create(vault, mainWindow);
 	}
 
 	@FXML

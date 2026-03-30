@@ -68,12 +68,12 @@ public class DecryptFileNamesViewController implements FxController {
 	public TableView<CipherAndCleartext> cipherToCleartextTable;
 
 	@Inject
-	public DecryptFileNamesViewController(@DecryptNameWindow Stage window, @DecryptNameWindow Vault vault, @DecryptNameWindow List<Path> pathsToDecrypt, ResourceBundle resourceBundle) {
+	public DecryptFileNamesViewController(@DecryptNameWindow Stage window, @DecryptNameWindow Vault vault, ResourceBundle resourceBundle) {
 		this.window = window;
 		this.vault = vault;
 		this.resourceBundle = resourceBundle;
 		this.mapping = new SimpleListProperty<>(FXCollections.observableArrayList());
-		this.initialList = pathsToDecrypt;
+		this.initialList = List.of();
 	}
 
 	@FXML
@@ -124,6 +124,7 @@ public class DecryptFileNamesViewController implements FxController {
 			}
 		});
 		decrypt(initialList);
+		window.setOnHidden(_ -> mapping.clear());
 	}
 
 	private void copySingleCelltoClipboard() {
