@@ -43,31 +43,7 @@ jobs:
           discussion_category_name: releases
           token: ${{ secrets.CRYPTOBOT_RELEASE_TOKEN }}
           generate_release_notes: true
-          body: |-
-            > [!WARN]
-            > 🚧 DO NOT EDIT 🚧
-            >
-            > The [builds are still running](https://github.com/cryptomator/cryptomator/actions/workflows/release.yml).
-            
-            <!--REPLACE with auto-generated release notes (see below)
-            ### What's New 🎉
-            ### Bugfixes 🐛
-            ### Other Changes 📎
-            END REPLACE-->
-            
-            For a comprehensive view of changes, read the [CHANGELOG](https://github.com/cryptomator/cryptomator/blob/develop/CHANGELOG.md).
-            
-            ---
-            
-            💾 SHA-256 checksums of release artifacts:
-            ```
-            ```
-            
-            > [!TIP]
-            > You can verify the GPG signature of all assets using our public key: [`5811 7AFA 1F85 B3EE C154  677D 615D 449F E6E6 A235`](https://gist.github.com/cryptobot/211111cf092037490275f39d408f461a).
-            
-            
-            <!-- Auto-Generated Release Notes: -->
+          body_path: .github/release-body.md.template
       - name: Download source tarball
         run: |
           curl --silent --fail-with-body --proto "=https" -L -H "Accept: application/vnd.github+json" https://github.com/cryptomator/cryptomator/archive/${{ github.ref }}.tar.gz --output cryptomator-${{ github.ref_name }}.tar.gz
@@ -123,6 +99,7 @@ jobs:
       SEMVER: ${{ needs.get-version.outputs.semVerStr }}
       GH_TOKEN: ${{ secrets.CRYPTOBOT_RELEASE_TOKEN }}
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Compute source tarball SHA256
         id: src-sha256
         run: |
@@ -134,20 +111,28 @@ jobs:
           echo "value=${CMD_OUTPUT[0]}" >> $GITHUB_OUTPUT
       - name: Update release body with checksums
         run: |
-          CHECKSUMS="${SRC_SHA}  cryptomator-${SEMVER}.tar.gz
-          ${MSI_SHA}  Cryptomator-${SEMVER}-x64.msi
-          ${EXE_SHA}  Cryptomator-${SEMVER}-x64.exe
-          ${DMG_ARM64_SHA}  Cryptomator-${SEMVER}-arm64.dmg
-          ${DMG_X64_SHA}  Cryptomator-${SEMVER}-x64.dmg
-          ${APPIMAGE_X64_SHA}  cryptomator-${SEMVER}-x86_64.AppImage
-          ${APPIMAGE_AARCH64_SHA}  cryptomator-${SEMVER}-aarch64.AppImage"
-
           CURRENT_BODY=$(gh release view "${TAG}" --json body --jq .body)
-          UPDATED_BODY=$(echo "$CURRENT_BODY" | awk -v sums="$CHECKSUMS" '
-            /^```$/ && !done { print; print sums; done=1; next }
-            1
-          ')
-          gh release edit "${TAG}" --draft --notes "$UPDATED_BODY"
+          RELEASE_BODY=$(printf '%s\n' "${CURRENT_BODY}" | sed '/<!-- HEADER -->/,/<!-- \/HEADER -->/c\
+          <!-- HEADER -->\
+          > [!SUCCESS]\
+          > Release artifacts finished building successfully.\
+          >\
+          > SHA-256 checksums have been updated below.\
+          <!-- /HEADER -->')
+
+          export TARBALL="${SRC_SHA}  cryptomator-${SEMVER}.tar.gz"
+          export MSI="${MSI_SHA}  Cryptomator-${SEMVER}-x64.msi"
+          export EXE="${EXE_SHA}  Cryptomator-${SEMVER}-x64.exe"
+          export DMG_arm64="${DMG_ARM64_SHA}  Cryptomator-${SEMVER}-arm64.dmg"
+          export DMG_x64="${DMG_X64_SHA}  Cryptomator-${SEMVER}-x64.dmg"
+          export APPIMAGE_x86_64="${APPIMAGE_X64_SHA}  cryptomator-${SEMVER}-x86_64.AppImage"
+          export APPIMAGE_aarch64="${APPIMAGE_AARCH64_SHA}  cryptomator-${SEMVER}-aarch64.AppImage"
+
+          envsubst '$TARBALL $EXE $MSI $DMG_x64 $DMG_arm64 $APPIMAGE_x86_64 $APPIMAGE_aarch64' \
+            <<< "${RELEASE_BODY}" \
+            > release-body.md
+
+          gh release edit "${TAG}" --draft --notes-file release-body.md
         env:
           SRC_SHA: ${{ steps.src-sha256.outputs.value }}
           MSI_SHA: ${{ needs.build-exe-and-msi.outputs.sha256-msi }}
