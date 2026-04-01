@@ -1,7 +1,6 @@
 name: Create a Cryptomator Release
 
 on:
-  workflow_dispatch:
   push:
     tags:
         - '*'
