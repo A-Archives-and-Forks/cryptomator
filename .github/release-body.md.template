@@ -2,7 +2,7 @@
 > [!WARN]
 > 🚧 DO NOT EDIT 🚧
 >
-> The [builds are still running](https://github.com/cryptomator/cryptomator/actions/workflows/release.yml).
+> The [builds are still running](https://github.com/cryptomator/cryptomator/actions/workflows/create-release.yml).
 > This banner will be replaced after the builds are finished.
 <!-- /HEADER -->
 
