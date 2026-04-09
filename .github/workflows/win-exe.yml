@@ -208,7 +208,7 @@ jobs:
           & $env:JAVA_HOME\bin\jmod.exe extract --dir jpackage-jmod "${env:JAVA_HOME}\jmods\jdk.jpackage.jmod"
           Get-ChildItem -Recurse -Path "jpackage-jmod" -File wixhelper.dll | Select-Object -Last 1 | Copy-Item -Destination "appdir"
       - name: Sign DLLs with Azure Trusted Signing
-        if: inputs.sign || github.event_name == 'release' || github.event_name == 'schedule'
+        if: inputs.sign || inputs.is-release || github.event_name == 'schedule'
         uses: ./.github/actions/win-sign-action
         with:
           base-dir: ${{ github.workspace }}\appdir
@@ -266,7 +266,7 @@ jobs:
           JP_WIXWIZARD_RESOURCES: ${{ github.workspace }}/dist/win/resources # requires abs path, used in resources/main.wxs
           JP_WIXHELPER_DIR: ${{ github.workspace }}\appdir
       - name: Sign MSI with Azure Trusted Signing
-        if: inputs.sign || github.event_name == 'release' || github.event_name == 'schedule'
+        if: inputs.sign || inputs.is-release || github.event_name == 'schedule'
         uses: ./.github/actions/win-sign-action
         with:
           base-dir: ${{ github.workspace }}\installer
@@ -377,10 +377,11 @@ jobs:
           ./bundle/bundleWithWinfsp.wxs
           -out "../../installer/unsigned/Cryptomator-Installer.exe"
       - name: Detach burn engine in preparation to sign
+        if: inputs.sign || inputs.is-release || github.event_name == 'schedule'
         run: >
           wix burn detach installer/unsigned/Cryptomator-Installer.exe -engine tmp/engine.exe
       - name: Sign WiX burn engine with Azure Trusted Signing
-        if: inputs.sign || github.event_name == 'release' || github.event_name == 'schedule'
+        if: inputs.sign || inputs.is-release || github.event_name == 'schedule'
         uses: ./.github/actions/win-sign-action
         with:
           base-dir: ${{ github.workspace }}\tmp
@@ -391,10 +392,11 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
       - name: Reattach signed burn engine to installer
+        if: inputs.sign || inputs.is-release || github.event_name == 'schedule'
         run: >
           wix burn reattach installer/unsigned/Cryptomator-Installer.exe -engine tmp/engine.exe -o installer/Cryptomator-Installer.exe
       - name: Sign EXE installer with Azure Trusted Signing
-        if: inputs.sign || github.event_name == 'release' || github.event_name == 'schedule'
+        if: inputs.sign || inputs.is-release || github.event_name == 'schedule'
         uses: ./.github/actions/win-sign-action
         with:
           base-dir: ${{ github.workspace }}\installer

@@ -21,10 +21,6 @@ on:
       version:
         description: 'Version'
         required: false
-      create-pr:
-        description: 'Create a PR for aur-bin repo'
-        type: boolean
-        default: false
   push:
     branches-ignore:
       - 'dependabot/**'
@@ -226,6 +222,7 @@ jobs:
     name: Collect AppImage checksums
     runs-on: ubuntu-latest
     needs: [build]
+    if: inputs.is-release
     outputs:
       x64-sha256sum: ${{ steps.sha256sum.outputs.x64-sha256sum }}
       aarch64-sha256sum: ${{ steps.sha256sum.outputs.aarch64-sha256sum }}
