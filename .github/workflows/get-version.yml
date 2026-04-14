@@ -58,23 +58,25 @@ jobs:
           else
             SEM_VER_STR=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
           fi
-          SEM_VER_NUM=`echo ${SEM_VER_STR} | sed -E 's/([0-9]+\.[0-9]+\.[0-9]+).*/\1/'`
-          SEM_VER_SUFFIX=`echo ${SEM_VER_STR} | sed -E 's/[0-9]+\.[0-9]+\.[0-9]+?(.*)/\1/'`
+
+          SEM_VER_NUM=$(echo ${SEM_VER_STR} | sed -E 's/([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          SEM_VER_SUFFIX="${SEM_VER_STR#"$SEM_VER_NUM"}"
           REVCOUNT=`git rev-list --count HEAD`
+
           TYPE="unknown"
-          if [[ $SEM_VER_STR =~ [0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ -z $SEM_VER_SUFFIX  ]]; then
             TYPE="stable"
-          elif [[ $SEM_VER_STR =~ [0-9]+\.[0-9]+\.[0-9]+-alpha[1-9]+$ ]]; then
+          elif [[ $SEM_VER_SUFFIX =~ -alpha[1-9]+$ ]]; then
             TYPE="alpha"
-          elif [[ $SEM_VER_STR =~ [0-9]+\.[0-9]+\.[0-9]+-beta[1-9]+$ ]]; then
+          elif [[ $SEM_VER_SUFFIX =~ -beta[1-9]+$ ]]; then
             TYPE="beta"
-          elif [[ $SEM_VER_STR =~ [0-9]+\.[0-9]+\.[0-9]+-rc[1-9]$ ]]; then
+          elif [[ $SEM_VER_SUFFIX =~ -rc[1-9]+$ ]]; then
             TYPE="rc"
           fi
+
           echo "semVerStr=${SEM_VER_STR}" >> $GITHUB_OUTPUT
           echo "semVerNum=${SEM_VER_NUM}" >> $GITHUB_OUTPUT
           echo "semVerSuffix=${SEM_VER_SUFFIX}" >> $GITHUB_OUTPUT
-
           echo "revNum=${REVCOUNT}" >> $GITHUB_OUTPUT
           echo "type=${TYPE}" >> $GITHUB_OUTPUT
         env:
