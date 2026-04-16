@@ -19,7 +19,7 @@ jobs:
     with:
       version:  ''
 
-  create-release:
+  create-release-draft:
     name: Compile and Test
     runs-on: ubuntu-latest
     needs: get-version
@@ -69,7 +69,7 @@ jobs:
             cryptomator-*.tar.gz.asc
 
   build-exe-and-msi:
-    needs: [get-version, create-release]
+    needs: [get-version, create-release-draft]
     uses: ./.github/workflows/win-exe.yml
     with:
       semVerNum: ${{needs.get-version.outputs.semVerNum}}
@@ -78,7 +78,7 @@ jobs:
     secrets: inherit
 
   build-dmg-arm64:
-    needs: [get-version, create-release]
+    needs: [get-version, create-release-draft]
     uses: ./.github/workflows/mac-dmg.yml
     with:
       semVerNum: ${{needs.get-version.outputs.semVerNum}}
@@ -87,7 +87,7 @@ jobs:
     secrets: inherit
 
   build-dmg-x64:
-    needs: [get-version, create-release]
+    needs: [get-version, create-release-draft]
     uses: ./.github/workflows/mac-dmg-x64.yml
     with:
       semVerNum: ${{needs.get-version.outputs.semVerNum}}
@@ -96,7 +96,7 @@ jobs:
     secrets: inherit
 
   build-appimages:
-    needs: [get-version, create-release]
+    needs: [get-version, create-release-draft]
     uses: ./.github/workflows/appimage.yml
     with:
       semVerNum: ${{needs.get-version.outputs.semVerNum}}
