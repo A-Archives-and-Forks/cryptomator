@@ -25,16 +25,16 @@ flowchart TD
         get-version["get-version
         *parse semver from tag*"]
 
-        get-version --> create-release
-        create-release["create-release
+        get-version --> create-release-draft
+        create-release-draft["create-release-draft
         *compile & test (Linux)
         create draft release
         sign source tarball*"]
 
-        create-release --> build-exe-and-msi
-        create-release --> build-dmg-arm64
-        create-release --> build-dmg-x64
-        create-release --> build-appimages
+        create-release-draft --> build-exe-and-msi
+        create-release-draft --> build-dmg-arm64
+        create-release-draft --> build-dmg-x64
+        create-release-draft --> build-appimages
 
         build-exe-and-msi["build-exe-and-msi
         *calls win-exe.yml
