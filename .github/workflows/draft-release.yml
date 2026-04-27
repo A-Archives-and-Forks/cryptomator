@@ -127,7 +127,7 @@ jobs:
           CURRENT_BODY=$(gh release view "${TAG}" --json body --jq .body)
           RELEASE_BODY=$(printf '%s\n' "${CURRENT_BODY}" | sed '/<!-- HEADER -->/,/<!-- \/HEADER -->/c\
           <!-- HEADER -->\
-          > [!SUCCESS]\
+          > [!NOTE]\
           > Release artifacts finished building successfully.\
           >\
           > SHA-256 checksums have been updated below.\

@@ -21,6 +21,9 @@ on:
         description: 'Notarize'
         default: true
         type: boolean
+      upload-to-draft:
+        type: boolean
+        default: true
     outputs:
       sha256-dmg:
         description: "SHA256 sum of the arm64 dmg"
@@ -307,7 +310,7 @@ jobs:
             Cryptomator-*.asc
           if-no-files-found: error
       - name: Publish dmg on GitHub Releases
-        if: github.event_name == 'workflow_call'
+        if: inputs.upload-to-draft
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           draft: true
