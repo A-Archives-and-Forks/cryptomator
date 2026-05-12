@@ -90,7 +90,7 @@ class AppLaunchEventHandler {
 			LOG.debug("Added vault {}", potentialVaultPath);
 		} catch (NotAVaultDirectoryException e) {
 			LOG.warn("Cannot add {}: {}", potentialVaultPath, e.getMessage());
-			Platform.runLater(() -> dialogs.prepareNotAVaultDirectoryDialog(primaryStage, e.notAVaultReason()).build().showAndWait());
+			Platform.runLater(() -> dialogs.prepareNotAVaultDirectoryDialog(primaryStage, e).build().showAndWait());
 		} catch (IOException e) {
 			LOG.error("Failed to add vault {}", potentialVaultPath, e);
 		}

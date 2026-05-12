@@ -140,8 +140,8 @@ public class Dialogs {
 				.setCancelAction(Stage::close);
 	}
 
-	public SimpleDialog.Builder prepareNotAVaultDirectoryDialog(Stage window, NotAVaultDirectoryException.Reason reason) {
-		String descriptionKey = switch (reason) {
+	public SimpleDialog.Builder prepareNotAVaultDirectoryDialog(Stage window, NotAVaultDirectoryException e) {
+		String descriptionKey = switch (e.notAVaultReason()) {
 			case MISSING_DATA_DIR -> "addvaultwizard.existing.notAVault.description.missingDataDir";
 			case DATA_NOT_A_DIRECTORY -> "addvaultwizard.existing.notAVault.description.dataNotADirectory";
 			case MISSING_VAULT_CONFIG -> "addvaultwizard.existing.notAVault.description.missingVaultConfig";
@@ -152,7 +152,7 @@ public class Dialogs {
 				.setOwner(window) //
 				.setTitleKey("addvaultwizard.existing.notAVault.title") //
 				.setMessageKey("addvaultwizard.existing.notAVault.message") //
-				.setDescriptionKey(descriptionKey) //
+				.setDescriptionKey(descriptionKey, e.path().getFileName() != null ? e.path().getFileName().toString() : e.path().toString()) //
 				.setIcon(FontAwesome5Icon.EXCLAMATION) //
 				.setOkButtonKey(BUTTON_KEY_CLOSE) //
 				.setOkAction(Stage::close);

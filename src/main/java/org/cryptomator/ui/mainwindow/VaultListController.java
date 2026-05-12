@@ -336,7 +336,7 @@ public class VaultListController implements FxController {
 				vaultListManager.add(target);
 			} catch (NotAVaultDirectoryException e) {
 				LOG.warn("Cannot add {}: {}", target, e.getMessage());
-				Platform.runLater(() -> dialogs.prepareNotAVaultDirectoryDialog(mainWindow, e.notAVaultReason()).build().showAndWait());
+				Platform.runLater(() -> dialogs.prepareNotAVaultDirectoryDialog(mainWindow, e).build().showAndWait());
 			} catch (IOException e) {
 				LOG.error("Failed to add vault {}", target, e);
 			}

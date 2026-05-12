@@ -94,7 +94,7 @@ public class ChooseExistingVaultController implements FxController {
 				window.setScene(successScene.get());
 			} catch (NotAVaultDirectoryException e) {
 				LOG.warn("Selected folder is not a vault directory: {}", e.getMessage());
-				dialogs.prepareNotAVaultDirectoryDialog(window, e.notAVaultReason()).build().showAndWait();
+				dialogs.prepareNotAVaultDirectoryDialog(window, e).build().showAndWait();
 			} catch (IOException e) {
 				LOG.error("Failed to open existing vault.", e);
 				appWindows.showErrorWindow(e, window, window.getScene());
