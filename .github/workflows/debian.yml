@@ -56,7 +56,7 @@ jobs:
           fi
       - name: Install build tools
         run: |
-          sudo add-apt-repository ppa:coffeelibs/openjdk
+          sudo add-apt-repository -y ppa:coffeelibs/openjdk
           sudo apt-get update
           sudo apt-get install devscripts dput
           sudo apt-get satisfy "${DEB_BUILD_DEPENDS}"
