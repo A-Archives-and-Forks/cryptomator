@@ -229,7 +229,19 @@ jobs:
         uses: ./.github/actions/win-sign-action
         with:
           base-dir: ${{ github.workspace }}\appdir
+          file-extensions: 'exe,dll'
           recursive: true
+          append-signature: true
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+      - name: Sign Scripts with Azure Trusted Signing
+        if: inputs.sign || github.event_name == 'schedule'
+        uses: ./.github/actions/win-sign-action
+        with:
+          base-dir: ${{ github.workspace }}\appdir\Cryptomator
+          file-extensions: 'ps1'
+          recursive: false
           append-signature: true
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
