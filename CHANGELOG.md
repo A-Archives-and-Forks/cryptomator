@@ -8,7 +8,7 @@ The changelog starts with version 1.19.0.
 Changes to prior versions can be found on the [Github release page](https://github.com/cryptomator/cryptomator/releases).
 
 
-## [Unreleased](https://github.com/cryptomator/cryptomator/compare/1.19.2...HEAD)
+## [1.19.3](https://github.com/cryptomator/cryptomator/compare/1.19.2...HEAD)
 
 ### Added
 * New error dialog if importing a vault fails ([#4243](https://github.com/cryptomator/cryptomator/pull/4243))
