@@ -229,22 +229,23 @@ jobs:
         uses: ./.github/actions/win-sign-action
         with:
           base-dir: ${{ github.workspace }}\appdir
+          file-extensions: 'exe,dll'
           recursive: true
           append-signature: true
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-      - name: Sign DLLs with Actalis CodeSigner
-        if: inputs.sign || github.event_name == 'release'
-        uses: skymatic/workflows/.github/actions/win-sign-action@957d3c2c08c56855fdac41e5afb9a7aca8c30dd9 # no specific version
+      - name: Sign Scripts with Azure Trusted Signing
+        if: inputs.sign || github.event_name == 'schedule'
+        uses: ./.github/actions/win-sign-action
         with:
-          base-dir: 'appdir'
-          file-extensions: 'dll,exe,ps1'
-          recursive: true
-          sign-description: 'Cryptomator'
-          sign-url: 'https://cryptomator.org'
-          username: ${{ secrets.WIN_CODESIGN_USERNAME }}
-          password: ${{ secrets.WIN_CODESIGN_PW }}
+          base-dir: ${{ github.workspace }}\appdir\Cryptomator
+          file-extensions: 'ps1'
+          recursive: false
+          append-signature: false  # Powershell scripts cannot be signed in append mode, see #4260
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
       - name: Replace DLLs inside jars with signed ones
         shell: pwsh
         run: |
@@ -429,16 +430,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-      - name: Sign burn engine with Actalis CodeSigner
-        if: inputs.sign || github.event_name == 'release'
-        uses: skymatic/workflows/.github/actions/win-sign-action@957d3c2c08c56855fdac41e5afb9a7aca8c30dd9 # no specific version
-        with:
-          base-dir: 'tmp'
-          file-extensions: 'exe'
-          sign-description: 'Cryptomator Bundle Installer'
-          sign-url: 'https://cryptomator.org'
-          username: ${{ secrets.WIN_CODESIGN_USERNAME }}
-          password: ${{ secrets.WIN_CODESIGN_PW }}
       - name: Reattach signed burn engine to installer
         if: inputs.sign || github.event_name == 'schedule'
         shell: pwsh
@@ -456,16 +447,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-      - name: Sign installer with Actalis CodeSigner
-        if: inputs.sign || github.event_name == 'release'
-        uses: skymatic/workflows/.github/actions/win-sign-action@957d3c2c08c56855fdac41e5afb9a7aca8c30dd9 # no specific version
-        with:
-          base-dir: 'installer'
-          file-extensions: 'exe'
-          sign-description: 'Cryptomator Bundle Installer'
-          sign-url: 'https://cryptomator.org'
-          username: ${{ secrets.WIN_CODESIGN_USERNAME }}
-          password: ${{ secrets.WIN_CODESIGN_PW }}
       - id: sha256sum
         run: |
           read -ra CMD_OUTPUT < <(sha256sum installer/Cryptomator-*.exe)
