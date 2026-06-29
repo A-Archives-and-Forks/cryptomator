@@ -78,7 +78,7 @@ jobs:
           local-dir: ./upload/
   allowlist-avast:
     name: Anti Virus Allowlisting Avast
-    runs-on: ubuntu-slim
+    runs-on: ubuntu
     needs: download-file
     if: inputs.avast
     steps:
